@@ -4,7 +4,7 @@
 
 1. Compile the Java classes
     ```sh
-    javac *.java
+    javac -d out/ src/*.java
     ```
 2. Create a file called .env containing the following values:
     ```sh
@@ -15,20 +15,22 @@
     ```
     For connection between multiple machines, these should be changed to the relevant values.
 
-3. Launch the server router process in the background
+3. Launch the server router process
 
     ```sh
-    java TCPServerRouter&
+    java -cp out/ TCPServerRouter
     ```
 
-4. Launch the server process in the background
+4. Launch the server process
 
     ```sh
-    java TCPServer&
+    java -cp out/ TCPServer
     ```
 
 5. Launch the client process
 
     ```sh
-    java TCPClient
+    java -cp out/ TCPClient
     ```
+
+NOTE: Eventually this build process should run as a shell script, and generate a bundled .jar file. However, I'd really like to avoid switching to a hulking build tool like Ant/Gradle/Maven.
