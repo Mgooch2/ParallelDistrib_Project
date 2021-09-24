@@ -5,8 +5,8 @@
        public static void main(String[] args) throws IOException {
          Socket clientSocket = null; // socket for the thread
          Object [][] RoutingTable = new Object [10][2]; // routing table
-			int SockNum = 5555; // port number
-			Boolean Running = true;
+			int socketPortNum = 5555; // port number
+			Boolean isRunning = true;
 			int ind = 0; // indext in the routing table	
 
 			//Accepting connections
@@ -21,7 +21,7 @@
             }
 			
 			// Creating threads with accepted connections
-			while (Running == true)
+			while (isRunning == true)
 			{
 			try {
 				clientSocket = serverSocket.accept();
