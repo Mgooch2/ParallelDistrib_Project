@@ -13,7 +13,7 @@ public class TCPClient {
     Socket Socket = null; // socket to connect with ServerRouter
     PrintWriter out = null; // for writing to ServerRouter
     BufferedReader in = null; // for reading form ServerRouter
-    InetAddress addr = InetAddress.getLocalHost(); //Added by Mae
+    InetAddress addr = InetAddress.getLocalHost();
     String host = addr.getHostAddress(); // Client machine's IP
     String routerName = ARG_ROUTER_HOSTNAME; // ServerRouter host name
     int SockNum = 5555; // port number
