@@ -3,20 +3,17 @@ import java.net.*;
 
 public class TCPClient {
   public static void main(String[] args) throws IOException {
-    if (args.length != 2) {
-      System.err.println("Usage: $ java TCPServer [router_hostname] [destination_ip]");
-      System.exit(1);
-    }
-    String ARG_ROUTER_HOSTNAME = args[0];
-    String ARG_DESTINATION_IP = args[1];
+    // Initialize variables for communication.
+    final int socketPortNum = 5555; // port number
+    String routerName = DotEnv.getenv("ROUTER_HOSTNAME"); // ServerRouter host name
+    String address = DotEnv.getenv("DESTINATION_IP"); // destination IP (Server)
+    
     // Variables for setting up connection and communication
     Socket socket = null; // socket to connect with ServerRouter
     PrintWriter out = null; // for writing to ServerRouter
     BufferedReader in = null; // for reading form ServerRouter
     InetAddress addr = InetAddress.getLocalHost();
     String host = addr.getHostAddress(); // Client machine's IP
-    String routerName = ARG_ROUTER_HOSTNAME; // ServerRouter host name
-    int socketPortNum = 5555; // port number
 
     // Tries to connect to the ServerRouter
     try {
@@ -36,7 +33,6 @@ public class TCPClient {
     BufferedReader fromFile = new BufferedReader(reader); // reader for the string file
     String fromServer; // messages received from ServerRouter
     String fromUser; // messages sent to ServerRouter
-    String address = ARG_DESTINATION_IP; // destination IP (Server)
     long t0, t1, t;
 
     // Communication process (initial sends/receives
