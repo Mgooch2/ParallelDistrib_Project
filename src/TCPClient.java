@@ -29,7 +29,7 @@ public class TCPClient {
     }
 
     // Variables for message passing
-    Reader reader = new FileReader("file.txt");
+    Reader reader = new FileReader("file5.txt");
     BufferedReader fromFile = new BufferedReader(reader); // reader for the string file
     String fromServer; // messages received from ServerRouter
     String fromUser; // messages sent to ServerRouter
@@ -62,6 +62,7 @@ public class TCPClient {
     // closing connections
     out.close();
     in.close();
+    fromFile.close();
     socket.close();
   }
 }
