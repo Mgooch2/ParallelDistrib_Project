@@ -11,8 +11,35 @@ import java.io.*;
 import java.util.stream.*;
 
 public class DotEnv {
+
+  private static final String envFileName = ".env";
+
+  /** Returns whether or not the .env file exists. */
+  public static boolean envFileExists() {
+    return new File(envFileName).exists();
+  }
+
+  /**
+   * Gets the value of the specified environment variable, first from .env, and if
+   * it's not declared, then from the system. An environment variable is a
+   * system-dependent external named value.
+   * @returns the environmental variable, or null
+   */
+  public static String getenv(String name) {
+    // If the map is uninitialized, initialize it.
+    if (map == null) {
+      initialize();
+    }
+    // If the value isn't in the map, get the environmental variable.
+    if (!map.containsKey(name)) {
+      return System.getenv(name);
+    } else {
+      return map.get(name);
+    }
+  }
+
   private static Map<String, String> map;
-  
+
   private static void initialize() {
     // Construct new map
     map = new HashMap<String, String>();
@@ -25,7 +52,7 @@ public class DotEnv {
         if (s.length() == 0 || s.startsWith("#")) {
           return;
         }
-        String[] parts = s.split("=");
+        String[] parts = s.split("=", 2);
         if (parts.length == 2) {
           // Set key and value
           map.put(parts[0].trim(), parts[1].trim());
@@ -40,17 +67,5 @@ public class DotEnv {
       e.printStackTrace();
     }
   }
-  
-  public static String getenv(String name) {
-    // If the map is uninitialized, initialize it.
-    if (map == null) {
-      initialize();
-    }
-    // If the value isn't in the map, get the environmental variable.
-    if (!map.containsKey(name)) {
-      return System.getenv(name);
-    } else {
-      return map.get(name);
-    }
-  }
+
 }
