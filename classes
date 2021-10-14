@@ -1,0 +1,7 @@
+# Class list, generated using `find src -name '*.java' > classes`
+# Invoke with 'javac @classes'
+src/DotEnv.java
+src/SThread.java
+src/TCPClient.java
+src/TCPServer.java
+src/TCPServerRouter.java

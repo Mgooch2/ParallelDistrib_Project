@@ -4,7 +4,7 @@
 
 1. Compile the Java classes
     ```sh
-    javac -d out/ src/*.java
+    javac @classes
     ```
 2. Create a file called .env containing the following values:
     ```sh
