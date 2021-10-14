@@ -44,8 +44,9 @@ public class TCPServer {
       fromServer = fromClient.toUpperCase(); // converting received message to upper case
       if (fromClient.equals("Done.")) {
         fromServer = "Done.";
-        break;
       }
+      if (fromClient.equals("Bye."))
+        break;
       System.out.println("Server said: " + fromServer);
       out.println(fromServer); // sending the converted message back to the Client via ServerRouter
     }
