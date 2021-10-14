@@ -47,9 +47,6 @@ public class TCPServer {
       }
       System.out.println("Server said: " + fromServer);
       out.println(fromServer); // sending the converted message back to the Client via ServerRouter
-      if (fromClient.equals("Done.")) {
-        break;
-      }
     }
     // closing connections
     out.close();
