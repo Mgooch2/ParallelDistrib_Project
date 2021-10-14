@@ -36,17 +36,21 @@ public class TCPServer {
     out.println(address);// initial send (IP of the destination Client)
     fromClient = in.readLine();// initial receive from router (verification of connection)
     System.out.println("ServerRouter: " + fromClient);
+    out.println("Server " + host + " is listening."); // Initial send to client.
 
     // Communication while loop
     while ((fromClient = in.readLine()) != null) {
       System.out.println("Client said: " + fromClient);
-      if (fromClient.equals("Bye.")) // exit statement
-        break;
       fromServer = fromClient.toUpperCase(); // converting received message to upper case
+      if (fromClient.equals("Done.")) {
+        fromServer = "Bye.";
+      }
       System.out.println("Server said: " + fromServer);
       out.println(fromServer); // sending the converted message back to the Client via ServerRouter
+      if (fromClient.equals("Done.")) {
+        break;
+      }
     }
-
     // closing connections
     out.close();
     in.close();

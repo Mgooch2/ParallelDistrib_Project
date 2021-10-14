@@ -48,14 +48,16 @@ public class SThread extends Thread {
 			// Communication loop
 			while ((inputLine = in.readLine()) != null) {
 				System.out.println("Client/Server said: " + inputLine);
-				if (inputLine.equals("Bye.")) // exit statement
-					break;
+
 				outputLine = inputLine; // passes the input from the machine to the output string for the destination
 
 				if (outSocket != null) {
 					outTo.println(outputLine); // writes to the destination
 				}
+				if (inputLine.equals("Bye.")) // exit statement
+					break;
 			} // end while
+			// outSocket.close();
 		} // end try
 		catch (IOException e) {
 			System.err.println("Could not listen to socket.");
