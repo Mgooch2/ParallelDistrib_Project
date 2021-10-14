@@ -45,10 +45,10 @@ public class TCPServer {
       if (fromClient.equals("Done.")) {
         fromServer = "Done.";
       }
-      if (fromClient.equals("Bye."))
-        break;
       System.out.println("Server said: " + fromServer);
       out.println(fromServer); // sending the converted message back to the Client via ServerRouter
+      if (fromClient.equals("Bye."))
+        break;
     }
     // closing connections
     out.close();
