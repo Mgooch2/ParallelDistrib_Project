@@ -7,6 +7,11 @@ public class TCPClient {
     final int socketPortNum = 5555; // port number
     String routerName = DotEnv.getenv("ROUTER_HOSTNAME"); // ServerRouter host name
     String address = DotEnv.getenv("DESTINATION_IP"); // destination IP (Server)
+    if (args.length < 1) {
+      System.err.println("Usage: $ java TCPClient [file_to_send]");
+      System.exit(1);
+    }
+    String fileName = args[0];
 
     // Variables for setting up connection and communication
     Socket socket = null; // socket to connect with ServerRouter
@@ -29,7 +34,7 @@ public class TCPClient {
     }
 
     // Variables for message passing
-    Reader reader = new FileReader("file.txt");
+    Reader reader = new FileReader(fileName);
     BufferedReader fromFile = new BufferedReader(reader); // reader for the string file
     String fromServer; // messages received from ServerRouter
     String fromUser; // messages sent to ServerRouter
