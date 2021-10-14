@@ -58,7 +58,8 @@ public class TCPClient {
     // Wait for a response.
     while ((fromServer = in.readLine()) != null) {
       System.out.println("Server: " + fromServer);
-      if (fromServer.equals("Bye.")) { // exit statement
+      if (fromServer.equals("Done.")) { // exit statement
+        out.println("Bye.");
         break;
       }
     }
