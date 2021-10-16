@@ -44,10 +44,6 @@ public class TCPClient {
     fromServer = in.readLine();// initial receive from router (verification of connection)
     System.out.println("ServerRouter: " + fromServer);
 
-    // Receive a ready message from the server.
-    fromServer = in.readLine(); // initial receive from router (verification of connection)
-    System.out.println("Server: " + fromServer);
-
     // Write the whole file to the server.
     long t0 = System.currentTimeMillis();
     while ((fromUser = fromFile.readLine()) != null) {
