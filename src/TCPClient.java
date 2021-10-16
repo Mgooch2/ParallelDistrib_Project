@@ -46,7 +46,7 @@ public class TCPClient {
 
     // Receive a ready message from the server.
     fromServer = in.readLine(); // initial receive from router (verification of connection)
-    System.out.println("ServerRouter: " + fromServer);
+    System.out.println("Server: " + fromServer);
 
     // Write the whole file to the server.
     long t0 = System.currentTimeMillis();
@@ -54,6 +54,9 @@ public class TCPClient {
       System.out.println("Client: " + fromUser);
       out.println(fromUser);
     }
+    long t1 = System.currentTimeMillis();
+    long delta1 = t1 - t0;
+
     out.println("Done.");
     // Wait for a response.
     while ((fromServer = in.readLine()) != null) {
@@ -63,9 +66,10 @@ public class TCPClient {
         break;
       }
     }
-    long t1 = System.currentTimeMillis();
-    long delta = t1 - t0;
-    System.out.println("Cycle time: " + delta + "ms");
+    long t2 = System.currentTimeMillis();
+    long delta2 = t2 - t1;
+    System.out.println("Time to write: " + delta1 + "ms");
+    System.out.println("Time to read: " + delta2 + "ms");
 
     // closing connections
     in.close();
