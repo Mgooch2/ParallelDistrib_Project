@@ -34,7 +34,12 @@ public class TCPClient {
     }
 
     // Variables for message passing
-    Reader reader = new FileReader(fileName);
+    Reader reader;
+    if (fileName.equals("-")) {
+      reader = new InputStreamReader(System.in);
+    } else {
+      reader = new FileReader(fileName);
+    }
     BufferedReader fromFile = new BufferedReader(reader); // reader for the string file
     String fromServer; // messages received from ServerRouter
     String fromUser; // messages sent to ServerRouter
