@@ -1,0 +1,7 @@
+/**
+ * FileTransferPeerClient
+ */
+public class FileTransferPeerClient {
+
+    
+}
