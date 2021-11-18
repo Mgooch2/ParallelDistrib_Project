@@ -1,7 +1,12 @@
 # Class list, generated using `find src -name '*.java' > classes`
 # Invoke with 'javac @classes'
-src/DotEnv.java
-src/SThread.java
-src/TCPClient.java
-src/TCPServer.java
-src/TCPServerRouter.java
+
+
+src/EchoPeerClient.java
+src/FileTransferPeerClient.java
+src/PeerClient.java
+src/PeerRouter.java
+src/PeerRouterClientDemo.java
+src/util/SequentialRegistry.java
+src/util/PeerRouterConnection.java
+src/util/DotEnv.java
