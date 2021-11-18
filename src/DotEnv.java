@@ -1,71 +1,59 @@
 /**
  * DotEnv.java
  * @author Mae Morella
+ * @version 2.0
  * 
- * A dumb tool that parses a file called ".env" for key value pairs,
- * and uses those to shadow environmental variables.
+ * A simple utility for parsing .env files to get key,value pairs.
+ * 
+ * Initialize with DotEnv.load(".env");
+ * Read with DotEnv.getEnv("MY_PROPERTY")
  */
 
 import java.util.*;
 import java.io.*;
-import java.util.stream.*;
 
 public class DotEnv {
+  private static final Map<String, String> propsMap = new HashMap<String, String>(); // a map containing the <K, V> pairs stored in .env
 
-  private static final String envFileName = ".env";
 
-  /** Returns whether or not the .env file exists. */
-  public static boolean envFileExists() {
-    return new File(envFileName).exists();
+  public static void load(String envFileName) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(envFileName))) {
+      // For each line in file...
+      reader.lines().forEach(l -> {
+        if (l.trim().length() == 0) return; // line is empty; skip.
+        if (l.startsWith("#")) return; // line starts with #; skip.
+        String[] parts = l.split("=", 2);
+        if (parts.length == 2) {
+          String key = parts[0].trim(), value = parts[1].trim();
+          propsMap.put(key, value);
+        } else {
+          System.err.println("Error parsing " + envFileName + " - Unexpected property " + l);
+        }
+      });
+    } catch (FileNotFoundException e) {  // file doesn't exist. that's okay.
+    }
+    catch (IOException e) {
+      System.err.println("Error reading " + envFileName + ": " + e.getMessage());
+    }
   }
-
   /**
    * Gets the value of the specified environment variable, first from .env, and if
    * it's not declared, then from the system. An environment variable is a
    * system-dependent external named value.
    * @returns the environmental variable, or null
    */
-  public static String getenv(String name) {
-    // If the map is uninitialized, initialize it.
-    if (map == null) {
-      initialize();
-    }
+  public static String getEnv(String name) {
     // If the value isn't in the map, get the environmental variable.
-    if (!map.containsKey(name)) {
-      return System.getenv(name);
-    } else {
-      return map.get(name);
-    }
+    return propsMap.getOrDefault(name, System.getenv(name));
   }
-
-  private static Map<String, String> map;
-
-  private static void initialize() {
-    // Construct new map
-    map = new HashMap<String, String>();
-    // Read from file .env
-    try (BufferedReader reader = new BufferedReader(new FileReader(".env"))) {
-      // For each line in file...
-      Stream<String> lines = reader.lines();
-      lines.forEach(s -> {
-        // If line is empty or starts with a #, skip it.
-        if (s.length() == 0 || s.startsWith("#")) {
-          return;
-        }
-        String[] parts = s.split("=", 2);
-        if (parts.length == 2) {
-          // Set key and value
-          map.put(parts[0].trim(), parts[1].trim());
-        } else {
-          System.err.println("Error in .env parsing property: " + s);
-        }
-      });
-    } catch (FileNotFoundException e) {
-      // .env file does not exist. that's ok.
-      return;
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+  /**
+   * Gets the value of the specified environment variable, first from .env, and if
+   * it's not declared, then from the system. An environment variable is a
+   * system-dependent external named value.
+   * @returns the environmental variable, or the default value.
+   */
+  public static String getEnvOrDefault(String name, String defaultValue) {
+    String env = getEnv(name);
+    return (env == null) ? env : defaultValue;
   }
-
 }
