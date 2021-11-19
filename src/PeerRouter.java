@@ -1,128 +1,157 @@
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import util.*;
+
 import java.io.*;
-import java.lang.*;
 import java.net.*;
 
-
 /**
- * PeerRouter
- * Should accept connections via java.net.Socket
- * Should respond to the command "REGISTER" by putting the client's IP into a table.
-    * Respond with the node's ID ("M4")
- * Should respond to the command "GET M4" by retrieving the IP address of the 4th client
- * Should respond to "UNREGISTER" by removing the client IP if it exists.
- * If "M" is not the router's own routerPrefixChar, request "GET M4" from the router "M"
+ * PeerRouter Should accept connections via java.net.Socket Should respond to
+ * the command "REGISTER" by putting the client's IP into a table. Respond with
+ * the node's ID ("M4") Should respond to the command "GET M4" by retrieving the
+ * IP address of the 4th client Should respond to "UNREGISTER" by removing the
+ * client IP if it exists. If "M" is not the router's own routerPrefixChar,
+ * request "GET M4" from the router "M"
  */
-public class PeerRouter {
-    final private char routerPrefixChar; /* Uniquely identifies this router */
-    final private Map<Character, InetAddress> routerMap; // List of routers
+public class PeerRouter implements AutoCloseable {
+    /** Uniquely identifies this router */
+    final private char routerPrefix; 
+    /** A map of known routers */
+    final private Map<Character, PeerRouterConnection> routerConnections = new ConcurrentHashMap<Character, PeerRouterConnection>();
+    /** A list of nodes registered with this router. */
+    private Map<Integer, InetAddress> nodes = new ConcurrentHashMap<Integer, InetAddress>();
+    private AtomicInteger nextNodeID = new AtomicInteger(1);
 
-    final int routerPort = 6666;
-    
-    private SequentialRegistry<InetAddress> nodes = new SequentialRegistry<InetAddress>(1);
-    private List<Socket> clients = new Vector<Socket>();
-    private InetAddress myIPAddress;
+    private InetAddress localhost;
+    final int routerPort;
 
     private ServerSocket serverSocket;
 
     /**
+     * Creates a PeerRouter instance, with the given ID and port number.
      * 
+     * @throws IOException if an IO exception occurs while creating the ServerSocket
      */
-    public PeerRouter(final char routerPrefixChar, final Map<Character, InetAddress> routerMap) {
-        this.routerPrefixChar = routerPrefixChar;
-        this.routerMap = routerMap;
-        try {
-            this.myIPAddress = InetAddress.getLocalHost();
-            this.serverSocket = new ServerSocket(routerPort);
-        } catch (IOException e) {
-            System.err.println("Error creating ServerSocket on port " + routerPort);
-            System.err.println(e.getMessage());
-            System.exit(1);
-        }
-        routerMap.put(routerPrefixChar, myIPAddress);
+    public PeerRouter(final char routerPrefix, final int routerPort) throws IOException {
+        this.routerPrefix = routerPrefix;
+        this.routerPort = routerPort;
+        this.serverSocket = new ServerSocket(routerPort);
+        this.localhost = InetAddress.getLocalHost();
     }
 
-    public void accept() throws IOException{
+    /**
+     * Establish socket connections.
+     * 
+     * @throws IOException
+     */
+    public void listen() throws IOException {
         // block until someone connects
-        System.out.println("Router accepting connections at " + myIPAddress + ":" + routerPort + "...");
+        System.out.println("Router accepting connections at " + localhost + ":" + routerPort + "...");
         while (true) {
-            Socket sock = serverSocket.accept(); // blocking
-            System.out.println("Accepted connection from " + sock.getInetAddress() + "!");
+            Socket clientSocket = serverSocket.accept(); // blocking
+            System.out.println("Accepted connection from " + clientSocket.getInetAddress() + "!");
             Thread t = new Thread(() -> {
-                try (
-                    sock;
-                    PrintWriter out = new PrintWriter(sock.getOutputStream());
-                    BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-                ) {
-                    out.println("Your IP address is: " + sock.getInetAddress());
-                    String command;
-                    while ((command = in.readLine()) != null) {
-                        System.out.println(sock.getInetAddress() + ": " + command);
-                        out.println("You said: " + command);
-                        out.flush();
-                    }
-                    System.out.println("Connection closed.");
-                    sock.close();
-                    clients.remove(sock);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                handleAccept(clientSocket);
             });
             t.start();
         }
     }
 
-    public static void main(String[] args) throws IOException {
-        // TODO: parse config file for my router prefix, and list of other routers
-        var routerMap = new ConcurrentHashMap<Character,InetAddress>();
-        PeerRouter p = new PeerRouter('M', routerMap); // construct
-        p.accept();
+    public void handleAccept(Socket clientSocket) {
+        try (clientSocket;
+                PrintWriter out = new PrintWriter(clientSocket.getOutputStream());
+                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));) {
+            out.println("Your IP address is: " + clientSocket.getInetAddress());
+            String command;
+            while ((command = in.readLine()) != null) {
+                System.out.println(clientSocket.getInetAddress() + ": " + command);
+                out.println("You said: " + command.toUpperCase());
+                out.flush();
+            }
+            System.out.println("Connection with " + clientSocket.getInetAddress() + " ended.");
+            clientSocket.close();
+        } catch (IOException e) {
+            System.out.println("Error communicating with " + clientSocket.getInetAddress() + ": " + e.getMessage());
+        }
     }
+
+    public void handleCommand(String command) {
+        
+    }
+
+    /**
+     * 
+     */
+    public void connectRouter(char routerPrefix, InetAddress addr, int port) {
+        System.out.println("Establishing connection with router " + routerPrefix );
+        var connection = PeerRouterConnection.connect(addr, routerPort);
+        if (connection != null) {
+            System.out.println("Establishing connection with router " + routerPrefix );
+        }
+        routerConnections.put(routerPrefix, connection);
+    }
+
+    public int registerNodeIP(InetAddress nodeAddr) {
+        int id = nextNodeID.getAndAdd(1);
+        nodes.put(id, nodeAddr);
+        System.out.println("Registered " + nodeAddr + " as node " + routerPrefix + id);
+        return id;
+    }
+
+    public void unregisterNodeIP(InetAddress nodeAddr) {
+        nodes.keySet().removeIf(k -> nodes.get(k).equals(nodeAddr));
+    }
+
+    public static void main(String[] args) throws IOException {
+        // Load configuration
+        DotEnv.load(".env");
+        char prefix = DotEnv.getEnvOrDefault("ROUTER_PREFIX", "M").charAt(0);
+        int port = Integer.parseInt(DotEnv.getEnvOrDefault("ROUTER_PORT", "6666"));
+        // Construct PeerRouter
+        try (PeerRouter p = new PeerRouter(prefix, 6666);) {
+            p.listen();
+        } catch (IOException e) {
+            System.err.println("IO Error: " + e.getMessage());
+        }
+    }
+
     /**
      * @param routerPrefix the prefix of the router, e.g. 'M'
-     * @param nodeNum the number representing which node to get, e.g. '4'
+     * @param nodeNum      the number representing which node to get, e.g. '4'
      * @returns the IP address of that node, or null if it does not exist
      */
-    private InetAddress resolveNodeIP(char routerPrefix, int nodeNum) {
-        if (routerPrefix == this.routerPrefixChar) {
+    public InetAddress resolveNodeIP(char routerPrefix, int nodeNum) {
+        if (routerPrefix == this.routerPrefix) {
             // That's me! Let me check my table...
             return nodes.get(nodeNum);
-        } else if (routerMap.containsKey(routerPrefix)) {
+        } else if (routerConnections.containsKey(routerPrefix)) {
 
         }
-        System.out.println("Could not find router " + routerMap);
+        System.out.println("Could not find router " + routerPrefix);
         return null;
     }
 
+    // public static void temp(String par1) {
+    //     String[] var1 = par1.split(" ");
 
-    public static void temp(String par1) {
-        String[] var1 = par1.split(" ");
+    //     switch (var1[0]) {
+    //     case "GET":
+    //         getNodeAddress(var1[1]);
+    //         break;
+    //     case "REGISTER":
+    //         // register(var1[1]);
+    //         break;
+    //     }
 
-        switch(var1[0]) {
-            case "GET":
-                getNodeAddress(var1[1]);
-                break;
-            case "REGISTER":
-                //register(var1[1]);
-                break;
+    // }
+
+    @Override
+    public void close() {
+        try {
+            serverSocket.close();
+        } catch (IOException e) {
         }
-
-    }
-
-    public static InetAddress getNodeAddress(String var1) {
-        char par1 = 'g';
-        int par2 = 7;
-
-        //access address table using split request char and int and return address
-
-        return null;
-    }
-
-    private class SThread extends Thread {
-            @Override
-            public void run() {
-
-            }
     }
 }
