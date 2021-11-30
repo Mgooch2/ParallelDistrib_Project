@@ -101,8 +101,8 @@ public class PeerRouter implements AutoCloseable {
             case "GET":
                 // TODO: resolve node address
                 // resolveNode(args)
-                char routerPrefix = router;
-                return resolveNodeIP(routerPrefix, nodeNum);
+                char routerPrefix = args.charAt(0);
+                return resolveNodeIP(routerPrefix, Integer.parseInt(args.substring(1))).toString();
             case "REGISTER":
                 // TODO: register client node
                 return registerNodeIP(clientSocket.getInetAddress());
