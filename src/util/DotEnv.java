@@ -15,6 +15,7 @@ import java.io.*;
 
 public class DotEnv {
   private static final Map<String, String> propsMap = new HashMap<String, String>(); // a map containing the <K, V> pairs stored in .env
+  private static boolean initialized = false;
 
 
   public static void load(String envFileName) {
@@ -31,6 +32,7 @@ public class DotEnv {
           System.err.println("Error parsing " + envFileName + " - Unexpected property " + l);
         }
       });
+      initialized = true;
     } catch (FileNotFoundException e) {  // file doesn't exist. that's okay.
     }
     catch (IOException e) {
@@ -44,6 +46,9 @@ public class DotEnv {
    * @returns the environmental variable, or null
    */
   public static String getEnv(String name) {
+    if (!initialized) {
+      throw new RuntimeException("Error: DotEnv is was not initialized with a call to DotEnv.load");
+    }
     // If the value isn't in the map, get the environmental variable.
     return propsMap.getOrDefault(name, System.getenv(name));
   }

@@ -2,6 +2,5 @@
  * FileTransferPeerClient
  */
 public class FileTransferPeerClient {
-
     
 }

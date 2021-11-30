@@ -20,7 +20,7 @@ public class SequentialRegistry<T> {
      * @param t The InetAddress of the node to register.
      * @return The ID number assigned to the node. -1 if adding failed.
      */
-    public int register(T t) {
+    public int register(final T t) {
         // Check that the address is not already registered.
         if (!contains(t)) {
             list.add(t);
@@ -28,7 +28,7 @@ public class SequentialRegistry<T> {
         return indexOf(t);
     }
     /** @return the index of the given object, or -1 if not registered */
-    public int indexOf(T t) {
+    public int indexOf(final T t) {
         int i = list.indexOf(t);
         if (i == -1) return i;
         return i + startIdx;
@@ -41,7 +41,7 @@ public class SequentialRegistry<T> {
         return list.get(i);
     }
     /** @return Whether a node with the given address is registered */
-    public boolean contains(T t) {
+    public boolean contains(final T t) {
         return indexOf(t) != -1;
     }
     /** @return Whether a node with the given ID exists in this registry */
@@ -65,13 +65,17 @@ public class SequentialRegistry<T> {
      * @param id
      * @return Whether or not the node existed previously.
      */
-    public boolean unregister(T t) {
+    public boolean unregister(final T t) {
         if (indexOf(t) == -1)
             return false;
         return list.remove(t);
     }
-
-    public static void main(String[] args) {
-        
+    /** The number of objects currently registered. */
+    public int count() {
+        int count = 0;
+        for (T t : list) {
+            if (t != null) count++;
+        }
+        return count;
     }
 }

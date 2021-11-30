@@ -2,6 +2,8 @@ import java.net.*;
 import java.io.*;
 import java.util.*;
 
+import util.DotEnv;
+
 /**
  * PeerRouterClientDemo
  */
@@ -9,12 +11,18 @@ import java.util.*;
 public class PeerRouterClientDemo {
 
     public static void main(String[] args) throws IOException {
+        DotEnv.load(".env");
+        final String routerHostname = DotEnv.getEnvOrDefault("ROUTER_HOSTNAME", "localhost");
+        final int routerPort = Integer.parseInt(DotEnv.getEnvOrDefault("ROUTER_PORT", "6666"));
+        InetSocketAddress addr = new InetSocketAddress(routerHostname, routerPort);
         // blocking
-        try (Socket s = new Socket("localhost", 6666)) {
+        System.out.println("Connecting to " + routerHostname + ":" + routerPort + "...");
+        try (Socket s = new Socket(); var scanner = new Scanner(System.in);) {
+            s.connect(addr);
             System.out.println("Connected!");
             var out = new PrintWriter(s.getOutputStream());
             var in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-            var scanner = new Scanner(System.in);
+            
             String send;
             while ((send = scanner.nextLine()) != null) {
                 out.println(send);

@@ -7,6 +7,4 @@ src/FileTransferPeerClient.java
 src/PeerClient.java
 src/PeerRouter.java
 src/PeerRouterClientDemo.java
-src/util/SequentialRegistry.java
-src/util/PeerRouterConnection.java
 src/util/DotEnv.java
