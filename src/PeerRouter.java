@@ -99,10 +99,20 @@ public class PeerRouter implements AutoCloseable {
             case "UPPER":
               return args.toUpperCase();
             case "GET":
-                // TODO: resolve node address
                 // resolveNode(args)
-                char routerPrefix = args.charAt(0);
-                return resolveNodeIP(routerPrefix, Integer.parseInt(args.substring(1))).toString();
+                if (args.length() != 0) {
+                    char routerPrefix = args.charAt(0);
+                    try {
+                        InetSocketAddress addr = resolveNodeIP(routerPrefix, Integer.parseInt(args.substring(1)));
+                        if (addr != null) {
+                            return addr.getHostName() + ":" + addr.getPort();
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error resolving " + command + ": " + e.getMessage());
+                        return "FAIL" + " " + e.getMessage();
+                    }
+                }
+                return "FAIL";
             case "REGISTER":
                 // TODO: register client node
                 return registerNodeIP(clientSocket.getInetAddress());
@@ -167,9 +177,9 @@ public class PeerRouter implements AutoCloseable {
     public static void main(String[] args) throws IOException {
         // Load configuration
         DotEnv.load(".env");
-        final char ROUTER_PREFIX = DotEnv.getEnvOrDefault("ROUTER_PREFIX", "M").charAt(0);
-        final int ROUTER_PORT = Integer.parseInt(DotEnv.getEnvOrDefault("ROUTER_PORT", "6666"));
-        final String FRIEND_ROUTERS = DotEnv.getEnvOrDefault("FRIEND_ROUTERS", "");
+        final char ROUTER_PREFIX = DotEnv.getEnv("ROUTER_PREFIX").charAt(0);
+        final int ROUTER_PORT = Integer.parseInt(DotEnv.getEnv("ROUTER_PORT"));
+        final String FRIEND_ROUTERS = DotEnv.getEnv("FRIEND_ROUTERS");
         
         // Construct PeerRouter
         try (PeerRouter p = new PeerRouter(ROUTER_PREFIX, ROUTER_PORT, parseRoutersList(FRIEND_ROUTERS));) {
@@ -184,12 +194,20 @@ public class PeerRouter implements AutoCloseable {
      * @param nodeNum      the number representing which node to get, e.g. '4'
      * @returns the IP address of that node, or null if it does not exist
      */
-    public InetAddress resolveNodeIP(char routerPrefix, int nodeNum) {
+    public InetSocketAddress resolveNodeIP(char routerPrefix, int nodeNum) {
         if (routerPrefix == this.routerPrefix) {
             // That's me! Let me check my table...
-            return nodes.get(nodeNum);
+            if (nodes.containsKey(nodeNum)) {
+                return new InetSocketAddress(nodes.get(nodeNum), this.routerPort);
+            } else {
+                System.out.println("Could not resolve; I don't have " + routerPrefix + nodeNum);
+                return null;
+            }
         } else if (routers.containsKey(routerPrefix)) {
-
+            InetSocketAddress r = routers.get(routerPrefix);
+            String command = "GET " + routerPrefix + nodeNum;
+            String[] response = connectRouter(r, command).split(":");
+            return new InetSocketAddress(response[0], Integer.parseInt(response[1]));
         }
         System.out.println("Could not find router " + routerPrefix);
         return null;
