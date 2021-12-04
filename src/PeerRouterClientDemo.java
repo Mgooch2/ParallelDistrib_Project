@@ -12,8 +12,8 @@ public class PeerRouterClientDemo {
 
     public static void main(String[] args) throws IOException {
         DotEnv.load(".env");
-        final String routerHostname = DotEnv.getEnvOrDefault("ROUTER_HOSTNAME", "localhost");
-        final int routerPort = Integer.parseInt(DotEnv.getEnvOrDefault("ROUTER_PORT", "6666"));
+        final String routerHostname = DotEnv.getEnv("ROUTER_HOSTNAME");
+        final int routerPort = Integer.parseInt(DotEnv.getEnv("ROUTER_PORT"));
         InetSocketAddress addr = new InetSocketAddress(routerHostname, routerPort);
         // blocking
         System.out.println("Connecting to " + routerHostname + ":" + routerPort + "...");

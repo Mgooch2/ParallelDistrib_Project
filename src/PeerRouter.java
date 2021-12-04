@@ -42,6 +42,7 @@ public class PeerRouter implements AutoCloseable {
         this.serverSocket = new ServerSocket(routerPort);
         this.localhost = InetAddress.getLocalHost();
         if (routers != null) {
+            System.out.println(routers.toString());
             this.routers.putAll(routers);
         }
     }
@@ -101,10 +102,14 @@ public class PeerRouter implements AutoCloseable {
             case "GET":
                 // resolveNode(args)
                 if (args.length() != 0) {
-                    char routerPrefix = args.charAt(0);
+                    // 'm' and 'M' resolve the same router.
                     try {
-                        InetSocketAddress addr = resolveNodeIP(routerPrefix, Integer.parseInt(args.substring(1)));
-                        if (addr != null) {
+                        char routerPrefix = args.toUpperCase().charAt(0);
+                        int number = Integer.parseInt(args.substring(1));
+                        InetSocketAddress addr = resolveNodeIP(routerPrefix, number);
+                        if (addr == null) {
+                            return "FAIL Could not resolve node " + args;
+                        } else {
                             return addr.getHostName() + ":" + addr.getPort();
                         }
                     } catch (Exception e) {
@@ -114,7 +119,6 @@ public class PeerRouter implements AutoCloseable {
                 }
                 return "FAIL";
             case "REGISTER":
-                // TODO: register client node
                 return registerNodeIP(clientSocket.getInetAddress());
             default:
               return "FAIL Unknown command";
@@ -149,10 +153,10 @@ public class PeerRouter implements AutoCloseable {
         if (endpoint == null) {
             return null;
         }
-        try (Socket s = new Socket();
-        var out = new PrintWriter(s.getOutputStream());
-        var in = new BufferedReader(new InputStreamReader(s.getInputStream()))) {
+        try (Socket s = new Socket();) {
             s.connect(endpoint);
+            var out = new PrintWriter(s.getOutputStream());
+            var in = new BufferedReader(new InputStreamReader(s.getInputStream()));
             out.println(command);
             out.flush();
             return in.readLine();
@@ -161,10 +165,23 @@ public class PeerRouter implements AutoCloseable {
             return null;
         }
     }
-
+    /**
+     * Places a new IP address into the node lookup table, and assign it an identifier.
+     * If it already exists, return the existing identifier.
+     * @param nodeAddr
+     * @return The identifier (e.g. "M1") assigned to this node.
+     */
     public String registerNodeIP(InetAddress nodeAddr) {
-        int id = nextNodeID.getAndAdd(1);
-        nodes.put(id, nodeAddr);
+        int id;
+        if (nodes.containsValue(nodeAddr)) { // node is already registered...
+            id = nodes.entrySet().stream()
+            .filter(entry -> Objects.equals(entry.getValue(), nodeAddr))
+            .map(Map.Entry::getKey)
+            .findAny().orElseThrow();
+        } else { // otherwise, register a new node.
+            id = nextNodeID.getAndAdd(1);
+            nodes.put(id, nodeAddr);
+        }
         System.out.println("Registered " + nodeAddr + " as node " + routerPrefix + id);
         return "" + routerPrefix + id;
     }
@@ -194,14 +211,13 @@ public class PeerRouter implements AutoCloseable {
      * @param nodeNum      the number representing which node to get, e.g. '4'
      * @returns the IP address of that node, or null if it does not exist
      */
-    public InetSocketAddress resolveNodeIP(char routerPrefix, int nodeNum) {
+    public InetSocketAddress resolveNodeIP(char routerPrefix, int nodeNum) throws RuntimeException {
         if (routerPrefix == this.routerPrefix) {
             // That's me! Let me check my table...
             if (nodes.containsKey(nodeNum)) {
                 return new InetSocketAddress(nodes.get(nodeNum), this.routerPort);
             } else {
-                System.out.println("Could not resolve; I don't have " + routerPrefix + nodeNum);
-                return null;
+                throw new RuntimeException("Node " + routerPrefix + nodeNum + " is not registered.");
             }
         } else if (routers.containsKey(routerPrefix)) {
             InetSocketAddress r = routers.get(routerPrefix);

@@ -1,4 +1,5 @@
 package util;
+
 /**
  * DotEnv.java
  * @author Mae Morella
@@ -9,7 +10,6 @@ package util;
  * Initialize with DotEnv.load(".env");
  * Read with DotEnv.getEnv("MY_PROPERTY")
  */
-
 import java.util.*;
 import java.io.*;
 
@@ -34,6 +34,7 @@ public class DotEnv {
       });
       initialized = true;
     } catch (FileNotFoundException e) {  // file doesn't exist. that's okay.
+      System.out.println("A file named " + envFileName + " could not be found");
     }
     catch (IOException e) {
       System.err.println("Error reading " + envFileName + ": " + e.getMessage());
