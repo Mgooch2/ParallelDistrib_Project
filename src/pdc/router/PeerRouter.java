@@ -1,10 +1,11 @@
-package router;
+package pdc.router;
+
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.*;
+import java.util.stream.*;
 
-import util.*;
-import util.RoutingCommon;
+import pdc.util.*;
 
 import java.io.*;
 import java.net.*;
@@ -69,7 +70,8 @@ public class PeerRouter implements AutoCloseable {
 
     /**
      * Establish socket connections.
-     * Blocks forever. On accept, spawns a new thread and runs handleAccept(clientSocket).
+     * Blocks forever. On accept, spawns a new thread and runs
+     * handleAccept(clientSocket).
      * 
      * @throws IOException
      */
@@ -127,7 +129,16 @@ public class PeerRouter implements AutoCloseable {
                 return args;
             case "UPPER":
                 return args.toUpperCase();
-            case "GET": // Must be followed by an 
+            case "LIST":
+                if (!args.isEmpty()) {
+                    try {
+                        return resolveNodeList(args.toUpperCase().charAt(0));
+                    } catch (Exception e) {
+                        return "FAIL " + e.getMessage();
+                    }
+                }
+                return getNodeList();
+            case "GET": // Must be followed by an
                 if (args.isEmpty()) {
                     return "FAIL Get command must contain a node identifier";
                 }
@@ -224,6 +235,23 @@ public class PeerRouter implements AutoCloseable {
         // Attempt to resolve the node IP from a remote router.
         InetSocketAddress r = routers.get(prefix);
         return RoutingCommon.requestNodeSocketAddress("" + prefix + num, r);
+    }
+
+
+    public String getNodeList() {
+        return nodes.keySet().stream().map(id -> "" + routerPrefix + id).collect(Collectors.joining(","));
+    }
+
+    public String resolveNodeList(char prefix) throws Exception {
+        if (prefix == this.routerPrefix) { // That's me! Let me check my table...
+            return getNodeList();
+        }
+        if (!routers.containsKey(prefix)) {
+            throw new RuntimeException("A router with prefix " + prefix + " is not configured.");
+        }
+        // Attempt to resolve the node IP from a remote router.
+        InetSocketAddress r = routers.get(prefix);
+        return RoutingCommon.sendSocketCommand(r, "LIST");
     }
 
     // Implement the close() method so we can use the PeerRouter in a try-with

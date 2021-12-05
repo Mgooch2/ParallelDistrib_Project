@@ -1,9 +1,9 @@
-package router;
+package pdc.router;
 import java.net.*;
 import java.io.*;
 import java.util.*;
 
-import util.DotEnv;
+import pdc.util.DotEnv;
 
 /**
  * PeerRouterClientDemo - A simple program which connects to a PeerRouter and sends messages from the command line. 

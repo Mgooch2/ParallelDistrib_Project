@@ -140,7 +140,8 @@ hs_err_pid*
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -199,3 +200,4 @@ tags
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/vim,java,macos,intellij,visualstudiocode
+.vscode/settings.json
