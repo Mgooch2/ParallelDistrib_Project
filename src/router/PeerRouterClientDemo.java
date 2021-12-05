@@ -1,3 +1,4 @@
+package router;
 import java.net.*;
 import java.io.*;
 import java.util.*;
@@ -5,7 +6,7 @@ import java.util.*;
 import util.DotEnv;
 
 /**
- * PeerRouterClientDemo
+ * PeerRouterClientDemo - A simple program which connects to a PeerRouter and sends messages from the command line. 
  */
 
 public class PeerRouterClientDemo {
@@ -22,7 +23,6 @@ public class PeerRouterClientDemo {
             System.out.println("Connected!");
             var out = new PrintWriter(s.getOutputStream());
             var in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-            
             String send;
             while ((send = scanner.nextLine()) != null) {
                 out.println(send);
