@@ -2,7 +2,7 @@
 
 by Mae B. Morella, Mionne Gooch, William McNab, Louis Todd, and Ethan Blaizis
 
-## Programs
+## Functionality
 
 ### PeerRouter
 
