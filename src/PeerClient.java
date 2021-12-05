@@ -8,12 +8,15 @@
 import java.io.*;
 import java.net.*;
 
+import util.DotEnv;
+
 public class PeerClient {
   public static void main(String[] args) throws IOException {
     // Initialize variables for communication.
     final int socketPortNum = 5555; // port number
-    String routerName = DotEnv.getenv("ROUTER_HOSTNAME"); // ServerRouter host name
-    String address = DotEnv.getenv("DESTINATION_IP"); // destination IP (Server)
+    DotEnv.load(".env");
+    String routerName = DotEnv.getEnv("ROUTER_HOSTNAME"); // ServerRouter host name
+    String address = DotEnv.getEnv("DESTINATION_IP"); // destination IP (Server)
 	InetSocketAddress inetSA = new InetSocketAddress(address, socketPortNum);
     
     // Variables for setting up connection and communication
