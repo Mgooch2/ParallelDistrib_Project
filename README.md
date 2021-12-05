@@ -6,6 +6,8 @@ by Mae B. Morella, Mionne Gooch, William McNab, Louis Todd, and Ethan Blaizis
 
 ### PeerRouter
 
+![A diagram showing the router layout](img/routing.png)
+
 - The router `M` maintains a directory of "nodes", which are all addressed by an identifier like `M1`.
 - Router `M` can resolve requests like `N1` by accessing the router `N`, if one exists.
 - Accepts connections via a ServerSocket, and responds to the following commands:
@@ -15,6 +17,8 @@ by Mae B. Morella, Mionne Gooch, William McNab, Louis Todd, and Ethan Blaizis
   - `LIST [router_prefix]` – connects to the given router name and invokes `LIST` there.
 
 ### EchoPeerServer
+
+![A diagram showing the p2p layout](img/p2p.png)
 
 - One possible implementation of the abstract PeerServer class.
 - Registers self with the specified router, and awaits connections.
