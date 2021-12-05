@@ -15,7 +15,7 @@ public abstract class PeerServer implements AutoCloseable {
     InetSocketAddress routerAddress; // the address of the router which owns me
     ServerSocket serverSocket;
 
-    String myNodeIP;
+    String nodeName = "";
 
     public PeerServer(String routerHostname, int routerPort) throws IOException {
         this.routerAddress = new InetSocketAddress(routerHostname, routerPort);
@@ -23,8 +23,8 @@ public abstract class PeerServer implements AutoCloseable {
     }
 
     public void registerMe() throws Exception {
-        String myID = RoutingCommon.sendSocketCommand(routerAddress, "REGISTER " + serverSocket.getLocalPort());
-        System.out.println("Registered with " + routerAddress + " as node " + myID);
+        nodeName = RoutingCommon.sendSocketCommand(routerAddress, "REGISTER " + serverSocket.getLocalPort());
+        System.out.println("Registered with " + routerAddress + " as node " + nodeName);
     }
 
     /**
@@ -37,7 +37,7 @@ public abstract class PeerServer implements AutoCloseable {
     public void listen() throws IOException {
         // block until someone connects
         System.out.println(
-                "Router accepting connections at " + serverSocket.getInetAddress() + ":" + serverSocket.getLocalPort()
+                "Node " + nodeName + " accepting connections at port " + serverSocket.getLocalPort()
                         + "...");
         while (true) {
             Socket clientSocket = serverSocket.accept(); // blocking
@@ -51,9 +51,6 @@ public abstract class PeerServer implements AutoCloseable {
 
     /** What to do when a client connects to me */
     public abstract void handleAccept(Socket clientSocket);
-
-    
-
 
     @Override
     public void close() {
