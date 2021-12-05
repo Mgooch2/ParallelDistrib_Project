@@ -3,6 +3,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import util.*;
+import util.RoutingCommon;
 
 import java.io.*;
 import java.net.*;
@@ -17,11 +18,11 @@ import java.net.*;
  */
 public class PeerRouter implements AutoCloseable {
     /** Uniquely identifies this router */
-    final private char routerPrefix; 
+    final private char routerPrefix;
     /** A map of known routers */
     final private Map<Character, InetSocketAddress> routers = new ConcurrentHashMap<Character, InetSocketAddress>();
     /** A list of nodes registered with this router. */
-    private Map<Integer, InetAddress> nodes = new ConcurrentHashMap<Integer, InetAddress>();
+    private Map<Integer, InetSocketAddress> nodes = new ConcurrentHashMap<Integer, InetSocketAddress>();
     private AtomicInteger nextNodeID = new AtomicInteger(1);
 
     private InetAddress localhost;
@@ -31,12 +32,15 @@ public class PeerRouter implements AutoCloseable {
 
     /**
      * Creates a PeerRouter instance, with the given ID and port number.
+     * 
      * @param routerPrefix A character which will identify this router
-     * @param routerPort The port this router will accept connections from
-     * @param routersList A comma-separated list of other router specifications; see parseRoutersList
+     * @param routerPort   The port this router will accept connections from
+     * @param routersList  A comma-separated list of other router specifications;
+     *                     see parseRoutersList
      * @throws IOException if an IO exception occurs while creating the ServerSocket
      */
-    public PeerRouter(final char routerPrefix, final int routerPort, final Map<Character, InetSocketAddress> routers) throws IOException {
+    public PeerRouter(final char routerPrefix, final int routerPort, final Map<Character, InetSocketAddress> routers)
+            throws IOException {
         this.routerPrefix = routerPrefix;
         this.routerPort = routerPort;
         this.serverSocket = new ServerSocket(routerPort);
@@ -47,9 +51,25 @@ public class PeerRouter implements AutoCloseable {
         }
     }
 
+    public static void main(String[] args) throws IOException {
+        // Load configuration
+        DotEnv.load(".env");
+        final char ROUTER_PREFIX = DotEnv.getEnv("ROUTER_PREFIX").charAt(0);
+        final int ROUTER_PORT = Integer.parseInt(DotEnv.getEnv("ROUTER_PORT"));
+        final String FRIEND_ROUTERS = DotEnv.getEnv("FRIEND_ROUTERS");
+
+        // Construct PeerRouter
+        try (PeerRouter p = new PeerRouter(ROUTER_PREFIX, ROUTER_PORT, parseRoutersList(FRIEND_ROUTERS));) {
+            p.listen();
+        } catch (IOException e) {
+            System.err.println("IO Error: " + e.getMessage());
+        }
+    }
+
     /**
      * Establish socket connections.
-     * Blocks forever, waiting for 
+     * Blocks forever. On accept, spawns a new thread and runs handleAccept(clientSocket).
+     * 
      * @throws IOException
      */
     public void listen() throws IOException {
@@ -86,6 +106,13 @@ public class PeerRouter implements AutoCloseable {
         }
     }
 
+    /**
+     * 
+     * @param command      An input command
+     * @param clientSocket The socket from which the command was received.
+     * @return The string to reply with. If the request could not be handled,
+     *         responds "FAIL " followed by a descriptive message.
+     */
     public String handleCommand(String command, Socket clientSocket) {
         // Split command on first space
         String[] comps = command.split(" ", 2);
@@ -94,40 +121,47 @@ public class PeerRouter implements AutoCloseable {
         if (comps.length > 1) {
             args = comps[1];
         }
-        switch(cmd) {
+        switch (cmd) {
             case "ECHO":
-              return args;
+                return args;
             case "UPPER":
-              return args.toUpperCase();
-            case "GET":
-                // resolveNode(args)
-                if (args.length() != 0) {
-                    // 'm' and 'M' resolve the same router.
-                    try {
-                        char routerPrefix = args.toUpperCase().charAt(0);
-                        int number = Integer.parseInt(args.substring(1));
-                        InetSocketAddress addr = resolveNodeIP(routerPrefix, number);
-                        if (addr == null) {
-                            return "FAIL Could not resolve node " + args;
-                        } else {
-                            return addr.getHostName() + ":" + addr.getPort();
-                        }
-                    } catch (Exception e) {
-                        System.err.println("Error resolving " + command + ": " + e.getMessage());
-                        return "FAIL" + " " + e.getMessage();
-                    }
+                return args.toUpperCase();
+            case "GET": // Must be followed by an 
+                if (args.isEmpty()) {
+                    return "FAIL Get command must contain a node identifier";
                 }
-                return "FAIL";
-            case "REGISTER":
-                return registerNodeIP(clientSocket.getInetAddress());
+                // 'm' and 'M' resolve the same router.
+                try {
+                    char prefix = args.toUpperCase().charAt(0);
+                    int num = Integer.parseInt(args.substring(1));
+                    InetSocketAddress addr = resolveNodeIP(prefix, num);
+                    return addr.getHostName() + ":" + addr.getPort();
+                } catch (NumberFormatException e) {
+                    return "FAIL Parsing " + args.substring(1);
+                } catch (Exception e) {
+                    System.err.println();
+                    String msg = "Error resolving node " + args + ": " + e.getMessage();
+                    System.err.println(msg);
+                    return "FAIL " + msg;
+                }
+            case "REGISTER": // REGISTER [port num]
+                try {
+                    int port = Integer.parseInt(args);
+                    return registerNodeIP(new InetSocketAddress(clientSocket.getInetAddress(), port));
+                } catch (NumberFormatException e) {
+                    return "FAIL Register command must specify a port number.";
+                }
             default:
-              return "FAIL Unknown command";
+                return "FAIL Unknown command";
         }
     }
 
     /**
-     * Parses a raw String containing a specification A router specification is a string in the format (char)Prefix:(String)Hostname:(int)Port
-     * @param routersList A comma-separated string of router specifications, example: "N:hostname:6667,O:hostname:6668"
+     * Parses a raw String containing a specification A router specification is a
+     * string in the format (char)Prefix:(String)Hostname:(int)Port
+     * 
+     * @param routersList A comma-separated string of router specifications,
+     *                    example: "N:hostname:6667,O:hostname:6668"
      */
     public static Map<Character, InetSocketAddress> parseRoutersList(String routersList) {
         var routers = new HashMap<Character, InetSocketAddress>();
@@ -143,106 +177,56 @@ public class PeerRouter implements AutoCloseable {
         }
         return routers;
     }
+
     /**
-     * Forward a command to the router with the given prefix
-     * @param routerPrefix
-     * @param command A single line which will be printed to the router.
-     * @return The router's response.
-     */
-    public static String connectRouter(InetSocketAddress endpoint, String command) {
-        if (endpoint == null) {
-            return null;
-        }
-        try (Socket s = new Socket();) {
-            s.connect(endpoint);
-            var out = new PrintWriter(s.getOutputStream());
-            var in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-            out.println(command);
-            out.flush();
-            return in.readLine();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-    /**
-     * Places a new IP address into the node lookup table, and assign it an identifier.
+     * Places a new IP address into the node lookup table, and assign it an
+     * identifier.
      * If it already exists, return the existing identifier.
+     * 
      * @param nodeAddr
      * @return The identifier (e.g. "M1") assigned to this node.
      */
-    public String registerNodeIP(InetAddress nodeAddr) {
-        int id;
+    public String registerNodeIP(InetSocketAddress nodeAddr) {
         if (nodes.containsValue(nodeAddr)) { // node is already registered...
-            id = nodes.entrySet().stream()
-            .filter(entry -> Objects.equals(entry.getValue(), nodeAddr))
-            .map(Map.Entry::getKey)
-            .findAny().orElseThrow();
+            int id = nodes.entrySet().stream()
+                    .filter(entry -> Objects.equals(entry.getValue(), nodeAddr))
+                    .map(Map.Entry::getKey)
+                    .findAny().orElseThrow();
+            return "" + routerPrefix + id;
         } else { // otherwise, register a new node.
-            id = nextNodeID.getAndAdd(1);
+            int id = nextNodeID.getAndAdd(1);
             nodes.put(id, nodeAddr);
+            System.out.println("Registered " + nodeAddr + " as node " + routerPrefix + id);
+            return "" + routerPrefix + id;
         }
-        System.out.println("Registered " + nodeAddr + " as node " + routerPrefix + id);
-        return "" + routerPrefix + id;
     }
 
-    public void unregisterNodeIP(InetAddress nodeAddr) {
+    public void unregisterNodeIP(InetSocketAddress nodeAddr) {
         nodes.keySet().removeIf(k -> nodes.get(k).equals(nodeAddr));
     }
 
-
-    public static void main(String[] args) throws IOException {
-        // Load configuration
-        DotEnv.load(".env");
-        final char ROUTER_PREFIX = DotEnv.getEnv("ROUTER_PREFIX").charAt(0);
-        final int ROUTER_PORT = Integer.parseInt(DotEnv.getEnv("ROUTER_PORT"));
-        final String FRIEND_ROUTERS = DotEnv.getEnv("FRIEND_ROUTERS");
-        
-        // Construct PeerRouter
-        try (PeerRouter p = new PeerRouter(ROUTER_PREFIX, ROUTER_PORT, parseRoutersList(FRIEND_ROUTERS));) {
-            p.listen();
-        } catch (IOException e) {
-            System.err.println("IO Error: " + e.getMessage());
-        }
-    }
-
     /**
-     * @param routerPrefix the prefix of the router, e.g. 'M'
-     * @param nodeNum      the number representing which node to get, e.g. '4'
-     * @returns the IP address of that node, or null if it does not exist
+     * @param prefix the prefix of the router, e.g. 'M'
+     * @param num    the number representing which node to get, e.g. '4'
+     * @returns the socket address of that node
+     * @throws Exception If the node could not be resolved.
      */
-    public InetSocketAddress resolveNodeIP(char routerPrefix, int nodeNum) throws RuntimeException {
-        if (routerPrefix == this.routerPrefix) {
-            // That's me! Let me check my table...
-            if (nodes.containsKey(nodeNum)) {
-                return new InetSocketAddress(nodes.get(nodeNum), this.routerPort);
-            } else {
-                throw new RuntimeException("Node " + routerPrefix + nodeNum + " is not registered.");
-            }
-        } else if (routers.containsKey(routerPrefix)) {
-            InetSocketAddress r = routers.get(routerPrefix);
-            String command = "GET " + routerPrefix + nodeNum;
-            String[] response = connectRouter(r, command).split(":");
-            return new InetSocketAddress(response[0], Integer.parseInt(response[1]));
+    public InetSocketAddress resolveNodeIP(char prefix, int num) throws Exception {
+        if (prefix == this.routerPrefix) { // That's me! Let me check my table...
+            if (!nodes.containsKey(num)) { // That node is not registered.
+                throw new RuntimeException("Node " + prefix + num + " is not registered.");
+            } // else...
+            return nodes.get(num);
+        } else if (!routers.containsKey(prefix)) {
+            throw new RuntimeException("A router with prefix " + prefix + " is not configured.");
         }
-        System.out.println("Could not find router " + routerPrefix);
-        return null;
+        // Attempt to resolve the node IP from a remote router.
+        InetSocketAddress r = routers.get(prefix);
+        return RoutingCommon.requestNodeSocketAddress("" + prefix + num, r);
     }
 
-    // public static void temp(String par1) {
-    //     String[] var1 = par1.split(" ");
-
-    //     switch (var1[0]) {
-    //     case "GET":
-    //         getNodeAddress(var1[1]);
-    //         break;
-    //     case "REGISTER":
-    //         // register(var1[1]);
-    //         break;
-    //     }
-
-    // }
-
+    // Implement the close() method so we can use the PeerRouter in a try-with
+    // block.
     @Override
     public void close() {
         try {
