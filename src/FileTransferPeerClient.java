@@ -1,6 +1,0 @@
-/**
- * FileTransferPeerClient
- */
-public class FileTransferPeerClient {
-    
-}

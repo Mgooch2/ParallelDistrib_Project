@@ -1,9 +1,0 @@
-/**
- * EchoPeerClient
- */
-public class EchoPeerClient {
-    /**
-     * 
-     */
-    
-}
